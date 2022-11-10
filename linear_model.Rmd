@@ -1,0 +1,128 @@
+---
+title: "Linear_Models"
+author: "Shun Xie"
+date: "2022-11-10"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+
+set.seed(1)
+```
+
+
+```{r}
+data("nyc_airbnb")
+
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  mutate(stars = review_scores_location / 2) %>% 
+  rename(
+    borough = neighbourhood_group,
+    neighborhood = neighbourhood) %>% 
+  filter(borough != "Staten Island") %>% 
+  select(price, stars, borough, neighborhood, room_type)
+```
+
+
+
+
+```{r}
+fit = lm(price ~ stars + borough, data = nyc_airbnb)
+
+```
+
+
+
+```{r}
+fit %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "borough","Borough: ")) %>% 
+  select(term,estimate,p.value) %>% 
+  knitr::kable(digits=2)
+
+```
+
+```{r}
+#when we pipe:
+fit = 
+  nyc_airbnb %>% 
+  lm(price~stars+borough, data=.)
+  
+```
+
+
+change freq:
+```{r}
+#most common in category 1, then category 2
+nyc_airbnb= nyc_airbnb %>% 
+  mutate(
+    borough = fct_infreq(borough)
+  )
+```
+
+
+
+```{r}
+fit %>% 
+  broom::glance() %>% 
+  select(AIC)
+```
+## Diagnosis
+
+```{r}
+modelr::add_residuals(nyc_airbnb, fit) %>% 
+  ggplot(aes(x=stars, y =resid))+
+  geom_point()
+
+nyc_airbnb %>% 
+  modelr::add_residuals(fit) %>% 
+  ggplot(aes(x=borough,y=resid))+
+  geom_violin()+
+  ylim(-250,250)
+```
+
+## Hypothesis test
+```{r}
+fit %>% 
+  broom::tidy()
+
+fit_null = lm(price~stars, data = nyc_airbnb)
+fit_alt = lm(price~ stars+borough, data = nyc_airbnb)
+
+anova(fit_null, fit_alt)
+```
+
+```{r}
+fit_new = nyc_airbnb %>% 
+  lm(price ~ stars + room_type * borough, data = .) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+```
+
+
+```{r}
+fit %>% broom::tidy()
+
+  
+```
+
+
+Do each time:
+```{r}
+nyc_airbnb %>% 
+  nest(df = -borough) %>% 
+  mutate(models = map(.x = df, ~lm(price~stars+room_type, data = .x)))
+
+
+```
+
+
+
+
