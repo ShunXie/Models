@@ -118,7 +118,11 @@ Do each time:
 ```{r}
 nyc_airbnb %>% 
   nest(df = -borough) %>% 
-  mutate(models = map(.x = df, ~lm(price~stars+room_type, data = .x)))
+  mutate(models = map(.x = df, ~lm(price~stars+room_type, data = .x)),
+         results = map(models, broom::tidy)) %>% 
+  select(borough, results) %>% 
+  unnest(results)
+
 
 
 ```
